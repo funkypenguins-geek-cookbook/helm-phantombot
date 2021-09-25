@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2019 phantombot.tv
+ * Copyright (C) 2016-2021 phantombot.github.io/PhantomBot
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
  */
 
 $.lang.register('noticehandler.notice-config', 'Notice Settings - [Notice Toggle: $1 / Interval: $2 / Message Trigger: $3 / Amount: $4 / Say notice in offline chat: $5]');
-$.lang.register('noticehandler.notice-usage', 'Usage: !notice [add / get / remove / edit / config / interval / req / toggle / toggleoffline]');
+$.lang.register('noticehandler.notice-usage', 'Usage: !notice [add / get / remove / edit / toggleid / config / interval / req / toggle / toggleoffline]');
 $.lang.register('noticehandler.notice-get-usage', 'Usage: !notice get (notice id) - Notice id\'s go from 0 to $1');
 $.lang.register('noticehandler.notice-error-notice-404', 'That notice does not exist.');
 $.lang.register('noticehandler.notice-edit-usage', 'Usage: !notice edit (notice id) (message) - Notice id\'s go from 0 to $1');
@@ -26,7 +26,7 @@ $.lang.register('noticehandler.notice-remove-success', 'Notice removed!');
 $.lang.register('noticehandler.notice-add-success', 'Notice added!');
 $.lang.register('noticehandler.notice-add-usage', 'Usage: !notice add (message)');
 $.lang.register('noticehandler.notice-interval-usage', 'Usage: !notice interval (interval)');
-$.lang.register('noticehandler.notice-interval-404', 'Notice interval needs to be more then 2 minutes.');
+$.lang.register('noticehandler.notice-interval-404', 'Notice interval needs to be more then 5 minutes.');
 $.lang.register('noticehandler.notice-inteval-success', 'Notice interval set!');
 $.lang.register('noticehandler.notice-req-success', 'Notice req message set!');
 $.lang.register('noticehandler.notice-req-usage', 'Usage: !notice req (req messages)');
@@ -35,3 +35,5 @@ $.lang.register('noticehandler.notice-enabled', 'Notices have been enabled!');
 $.lang.register('noticehandler.notice-disabled', 'Notices have been disabled.');
 $.lang.register('noticehandler.notice-enabled.offline', 'Notices now be said while the stream is offline.');
 $.lang.register('noticehandler.notice-disabled.offline', 'Notices will no longer be said while the stream is offline.');
+$.lang.register('noticehandler.notice-toggleid-usage', 'Usage: !notice toggleid (notice id) - Toggles the notice at the specified id on/off');
+$.lang.register('noticehandler.notice-toggleid-success', 'Notice $1 is now $2');

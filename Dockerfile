@@ -1,5 +1,5 @@
 #  
-# Copyright (C) 2016-2019 phantombot.tv
+# Copyright (C) 2016-2021 phantombot.github.io/PhantomBot
 #  
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,12 +16,13 @@
 #
 
 # Build container
-FROM openjdk:11.0.4-jdk as builder
+FROM adoptopenjdk:11-jdk-hotspot-bionic as builder
 
 ARG PROJECT_NAME=PhantomBot
 ARG BASEDIR=/opt/${PROJECT_NAME}
 ARG BUILDDIR=${BASEDIR}_build
 ARG DATADIR=${BASEDIR}_data
+ARG ANT_ARGS=
 
 ENV DEBIAN_FRONTEND=noninteractive
 RUN mkdir -p "${BUILDDIR}" \
@@ -36,22 +37,37 @@ RUN mkdir -p "${BUILDDIR}" \
 COPY . "${BUILDDIR}"
 
 RUN cd "${BUILDDIR}" \
-    && ant jar
+    && ant -noinput -buildfile build.xml -Disdocker=true ${ANT_ARGS} jar
 
 # Application container
-FROM azul/zulu-openjdk-alpine:11.0.4-jre
+FROM adoptopenjdk:11-jre-hotspot-bionic
 
 ARG PROJECT_NAME=PhantomBot
+ARG PROJECT_VERSION
 ARG BASEDIR=/opt/${PROJECT_NAME}
 ARG BUILDDIR=${BASEDIR}_build
 ARG DATADIR=${BASEDIR}_data
+ARG TARGETPLATFORM
+
+USER root
+
+RUN groupadd -r phantombot -g 900 \
+    && useradd -u 901 -r -g phantombot -s /sbin/nologin -c "PhantomBot Daemon User" phantombot
 
 RUN mkdir -p "${BASEDIR}" "${DATADIR}" "${BASEDIR}/logs"
 
-COPY --from=builder "${BUILDDIR}/dist/${PROJECT_NAME}-3.0.0/." "${BASEDIR}/"
+COPY --from=builder "${BUILDDIR}/dist/${PROJECT_NAME}-${PROJECT_VERSION}/." "${BASEDIR}/"
+
+RUN chown -R -H -L phantombot:phantombot "${BASEDIR}" \
+    && chown -R -H -L phantombot:phantombot "${DATADIR}"
+
+USER phantombot:phantombot
 
 RUN cd "${BASEDIR}" \
     && rm -rf \
+    && if [ "${TARGETPLATFORM}" = "linux/arm/v7" ] ; then rm -rf ${BASEDIR}/java-runtime ${BASEDIR}/java-runtime-macos ${BASEDIR}/java-runtime-linux ${BASEDIR}/launch.bat ; fi \
+    && if [ "${TARGETPLATFORM}" = "linux/arm64" ] ; then rm -rf ${BASEDIR}/java-runtime ${BASEDIR}/java-runtime-macos ${BASEDIR}/java-runtime-linux ${BASEDIR}/launch.bat ; fi \
+    && if [ "${TARGETPLATFORM}" = "linux/amd64" ] ; then rm -rf ${BASEDIR}/java-runtime ${BASEDIR}/java-runtime-macos ${BASEDIR}/launch.bat ; fi \
     && mkdir "${DATADIR}/scripts" \
     && mkdir "${DATADIR}/scripts/custom" \
     && mkdir "${DATADIR}/scripts/discord" \
@@ -68,8 +84,10 @@ RUN cd "${BASEDIR}" \
     && ln -s "${DATADIR}/dbbackup" \
     && ln -s "${DATADIR}/logs" \
     && ln -s "${DATADIR}/scripts/custom" "${BASEDIR}/scripts/custom" \
-    && ln -s "${DATADIR}/scripts/discord/custom" "${BASEDIR}/scripts/discord/" \
-    && ln -s "${DATADIR}/scripts/lang/custom" "${BASEDIR}/scripts/lang/"
+    && ln -s "${DATADIR}/scripts/discord" "${BASEDIR}/scripts/discord/custom" \
+    && ln -s "${DATADIR}/scripts/lang" "${BASEDIR}/scripts/lang/custom" \
+    && chmod u+x ${BASEDIR}/launch-service.sh \
+    && if [ "${TARGETPLATFORM}" = "linux/amd64" ] ; then chmod u+x ${BASEDIR}/java-runtime-linux/bin/java ; fi
 
 VOLUME "${DATADIR}"
 
@@ -77,4 +95,4 @@ WORKDIR "${BASEDIR}"
 
 EXPOSE 25000
 
-CMD ["sh", "launch-service.sh"]
+CMD ["bash", "launch-service.sh"]

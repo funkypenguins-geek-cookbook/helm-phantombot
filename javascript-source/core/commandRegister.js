@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2019 phantombot.tv
+ * Copyright (C) 2016-2021 phantombot.github.io/PhantomBot
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -59,6 +59,8 @@
         if ($.inidb.exists('disabledCommands', command)) {
             $.inidb.set('tempDisabledCommandScript', command, script);
             return;
+        } else {
+            $.inidb.del('tempDisabledCommandScript', command);
         }
 
         // Get and set the command permission.
@@ -132,6 +134,7 @@
         $.inidb.set('tempDisabledCommandScript', command, commands[command].script);
         if (commandExists(command)) {
             delete commands[command];
+        } else if (aliasExists(command)) {
             delete aliases[command];
         }
     }
@@ -158,6 +161,10 @@
      * @return {String}
      */
     function getCommandScript(command) {
+        if (commands[command] === undefined) {
+            return "Undefined";
+        }
+
         return commands[command].script;
     }
 
@@ -202,7 +209,15 @@
      */
     function getCommandGroup(command) {
         if (commandExists(command)) {
-            return commands[command].groupId;
+            var groupid = commands[command].groupId;
+
+            if ($.isSwappedSubscriberVIP() && groupid == 3) {
+                groupid = 5;
+            } else if ($.isSwappedSubscriberVIP() && groupid == 5) {
+                groupid = 3;
+            }
+
+            return groupid;
         }
         return 7;
     }
@@ -223,12 +238,12 @@
                 group = 'Administrator';
             } else if (commands[command].groupId == 2) {
                 group = 'Moderator';
-            } else if (commands[command].groupId == 3) {
+            } else if (commands[command].groupId == $.getSubscriberGroupID()) {
                 group = 'Subscriber';
             } else if (commands[command].groupId == 4) {
                 group = 'Donator';
-            } else if (commands[command].groupId == 5) {
-                group = 'Hoster';
+            } else if (commands[command].groupId == $.getVIPGroupID()) {
+                group = 'VIP';
             } else if (commands[command].groupId == 6) {
                 group = 'Regular';
             } else if (commands[command].groupId == 7) {
@@ -273,12 +288,12 @@
                 group = 'Administrator';
             } else if (commands[command].subcommands[subcommand].groupId == 2) {
                 group = 'Moderator';
-            } else if (commands[command].subcommands[subcommand].groupId == 3) {
+            } else if (commands[command].subcommands[subcommand].groupId == $.getSubscriberGroupID()) {
                 group = 'Subscriber';
             } else if (commands[command].subcommands[subcommand].groupId == 4) {
                 group = 'Donator';
-            } else if (commands[command].subcommands[subcommand].groupId == 5) {
-                group = 'Hoster';
+            } else if (commands[command].subcommands[subcommand].groupId == $.getVIPGroupID()) {
+                group = 'VIP';
             } else if (commands[command].subcommands[subcommand].groupId == 6) {
                 group = 'Regular';
             } else if (commands[command].subcommands[subcommand].groupId == 7) {
@@ -351,4 +366,22 @@
     $.registerChatAlias = registerChatAlias;
     $.tempUnRegisterChatCommand = tempUnRegisterChatCommand;
     $.getSubCommandFromArguments = getSubCommandFromArguments;
+
+    $.bind('webPanelSocketUpdate', function (event) {
+        if (event.getScript().equalsIgnoreCase('./core/commandRegister.js')) {
+            var args = event.getArgs(),
+                eventName = args[0] + '',
+                command = args[1] + '',
+                commandLower = command.toLowerCase() + '';
+            if (eventName === 'enable') {
+                if ($.inidb.exists('tempDisabledCommandScript', commandLower)) {
+                    $.registerChatCommand($.inidb.get('tempDisabledCommandScript', commandLower), commandLower);
+                }
+            } else if (eventName === 'disable') {
+                if (commandExists(commandLower)) {
+                    tempUnRegisterChatCommand(commandLower);
+                }
+            }
+        }
+    });
 })();

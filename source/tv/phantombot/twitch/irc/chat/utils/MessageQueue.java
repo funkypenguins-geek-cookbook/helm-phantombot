@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2019 phantombot.tv
+ * Copyright (C) 2016-2021 phantombot.github.io/PhantomBot
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,14 +16,16 @@
  */
 package tv.phantombot.twitch.irc.chat.utils;
 
+import java.util.Date;
 import java.util.concurrent.BlockingDeque;
 import java.util.concurrent.LinkedBlockingDeque;
 import org.java_websocket.exceptions.WebsocketNotConnectedException;
-
-import tv.phantombot.twitch.irc.TwitchSession;
 import tv.phantombot.PhantomBot;
+import tv.phantombot.twitch.api.TwitchValidate;
+import tv.phantombot.twitch.irc.TwitchSession;
 
 public class MessageQueue implements Runnable {
+
     private final BlockingDeque<Message> queue = new LinkedBlockingDeque<>();
     private final String channelName;
     private final Thread thread;
@@ -31,6 +33,8 @@ public class MessageQueue implements Runnable {
     private boolean isAllowedToSend = false;
     private boolean isKilled = false;
     private int writes = 0;
+    private final Date nextReminder = new Date();
+    private final long REMINDER_INTERVAL = 300000L;
 
     /**
      * Class constructor.
@@ -67,7 +71,7 @@ public class MessageQueue implements Runnable {
      *
      * @param {boolean} isAllowedToSend
      */
-    public void setAllowSendMessages(boolean isAllowedToSend) {
+    public synchronized void setAllowSendMessages(boolean isAllowedToSend) {
         this.isAllowedToSend = isAllowedToSend;
     }
 
@@ -95,7 +99,11 @@ public class MessageQueue implements Runnable {
      * @param {String} message
      */
     public void say(String message) {
-        queue.add(new Message(message));
+        message = message.replace('\r', ' ');
+        String[] spl = message.split("\n");
+        for (String str : spl) {
+            queue.add(new Message(str));
+        }
     }
 
     /**
@@ -104,7 +112,11 @@ public class MessageQueue implements Runnable {
      * @param {String} message
      */
     public void sayNow(String message) {
-        queue.addFirst(new Message(message, message.startsWith(".")));
+        message = message.replace('\r', ' ');
+        String[] spl = message.split("\n");
+        for (int i = spl.length; i > 0; i--) {
+            queue.addFirst(new Message(spl[i - 1], spl[i - 1].startsWith(".")));
+        }
     }
 
     /**
@@ -142,8 +154,23 @@ public class MessageQueue implements Runnable {
                     session.sendRaw("PRIVMSG #" + this.channelName + " :" + message.getMessage());
                     com.gmt2001.Console.out.println("[CHAT] " + message.getMessage());
                 }
+
+                if (new Date().after(nextReminder)) {
+                    if ((!isAllowedToSend || TwitchValidate.instance().hasOAuthInconsistencies(PhantomBot.instance().getBotName()))) {
+                        com.gmt2001.Console.warn.println("WARNING: Unable to send last message due to configuration error");
+
+                        TwitchValidate.instance().checkOAuthInconsistencies(PhantomBot.instance().getBotName());
+
+                        if (!isAllowedToSend) {
+                            com.gmt2001.Console.warn.println("WARNING: May not be a moderator");
+                        }
+                    }
+
+                    nextReminder.setTime(new Date().getTime() + REMINDER_INTERVAL);
+                }
             } catch (WebsocketNotConnectedException ex) {
                 com.gmt2001.Console.err.println("Failed to send message due to being disconnected from Twitch IRC.");
+                this.setAllowSendMessages(false);
                 session.reconnect();
             } catch (InterruptedException ex) {
                 com.gmt2001.Console.err.printStackTrace(ex);

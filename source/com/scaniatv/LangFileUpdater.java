@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2019 phantombot.tv
+ * Copyright (C) 2016-2021 phantombot.github.io/PhantomBot
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,37 +17,29 @@
 
 package com.scaniatv;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
-
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
-
 import java.util.ArrayList;
 import java.util.Collection;
-
-import java.util.regex.Pattern;
-import java.util.regex.Matcher;
 import java.util.HashMap;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.TrueFileFilter;
-
-import org.json.JSONObject;
 import org.json.JSONArray;
 import org.json.JSONException;
+import org.json.JSONObject;
 import org.json.JSONStringer;
 import tv.phantombot.PhantomBot;
 import tv.phantombot.script.Script;
-
 import tv.phantombot.script.ScriptManager;
 
 public final class LangFileUpdater {
@@ -69,11 +61,11 @@ public final class LangFileUpdater {
      */
     public static String getCustomLang(String langFile) throws JSONException {
         String stringArray;
-        
+
         stringArray = convertLangMapToJSONArray(
             getCustomAndDefaultLangMap(
-                getLang(DEFAULT_LANG_ROOT + langFile),
-                getLang(CUSTOM_LANG_ROOT + langFile)
+                getLang(DEFAULT_LANG_ROOT + langFile.replaceAll("\\.\\.", "").replaceAll("%", "_")),
+                getLang(CUSTOM_LANG_ROOT + langFile.replaceAll("\\.\\.", "").replaceAll("%", "_"))
             )
         );
         
@@ -101,7 +93,7 @@ public final class LangFileUpdater {
         }
         
         try {
-            langFile = CUSTOM_LANG_ROOT + langFile.replaceAll("\\\\", "/");
+            langFile = CUSTOM_LANG_ROOT + langFile.replaceAll("\\\\", "/").replaceAll("\\.\\.", "").replaceAll("%", "_");
             
             File file = new File(langFile);
             boolean exists = true;
@@ -185,8 +177,9 @@ public final class LangFileUpdater {
      */
     private static String getLang(String langFile) {
         final StringBuilder sb = new StringBuilder();
-        langFile = langFile.replaceAll("\\\\", "/");
-        
+
+        langFile = langFile.replaceAll("\\\\", "/").replaceAll("\\.\\.", "").replaceAll("%", "_");
+
         if (new File(langFile).exists()) {
             try {
                 try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(langFile)))) {
@@ -195,7 +188,6 @@ public final class LangFileUpdater {
                     while ((c = br.read()) != -1) {
                         sb.append((char)c);
                     }
-                    br.close();     
                 }
             } catch (IOException ex) {
                 com.gmt2001.Console.err.printStackTrace(ex);

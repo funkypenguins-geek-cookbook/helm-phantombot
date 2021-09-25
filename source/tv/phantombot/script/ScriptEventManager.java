@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2019 phantombot.tv
+ * Copyright (C) 2016-2021 phantombot.github.io/PhantomBot
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,7 +23,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import net.engio.mbassy.listener.Handler;
-import org.apache.commons.lang3.text.WordUtils;
+import org.apache.commons.text.WordUtils;
 import tv.phantombot.event.Event;
 import tv.phantombot.event.Listener;
 
@@ -72,7 +72,9 @@ public class ScriptEventManager implements Listener {
                 String eventName = event.getClass().getSimpleName();
                 ScriptEventHandler e = events.get(eventName);
 
-                e.handle(event);
+                if (e != null) {
+                    e.handle(event);
+                }
 
                 com.gmt2001.Console.debug.println("Dispatched event " + eventName);
             } catch (Exception ex) {

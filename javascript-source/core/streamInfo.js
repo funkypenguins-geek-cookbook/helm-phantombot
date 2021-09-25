@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2019 phantombot.tv
+ * Copyright (C) 2016-2021 phantombot.github.io/PhantomBot
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -131,7 +131,7 @@
             } else if (channelData.isNull('status') && channelData.getInt('_http') == 200) {
                 return $.lang.get('common.twitch.no.status');
             }
-            $.log.error('Failed to get the current status: ' + channelData.getString('message'));
+            $.log.error('Failed to get the current status: ' + channelData.optString('message', 'no message'));
             return '';
         }
     }
@@ -217,6 +217,7 @@
             var uptime = $.twitchcache.getStreamUptimeSeconds();
 
             if (uptime === 0) {
+                $.consoleLn("Fallback uptime");
                 var stream = $.twitch.GetStream(channelName),
                     now = new Date(),
                     createdAtDate,
@@ -390,7 +391,7 @@
     function getChannelAge(event) {
         var channelData = $.twitch.GetChannel((!event.getArgs()[0] ? event.getSender() : $.user.sanitize(event.getArgs()[0])));
 
-        if (channelData.getInt('_http') === 404) {
+        if (channelData.getInt('_http') === 404 || !channelData.getBoolean('_success')) {
             $.say($.userPrefix(event.getSender(), true) + $.lang.get('channel.age.user.404'));
             return;
         }
@@ -450,7 +451,7 @@
                 $.log.error(http.getString('message'));
             }
         } else {
-            $.log.error('Failed to change the game. Make sure you have your api oauth code set. https://phantombot.tv/oauth');
+            $.log.error('Failed to change the game. Make sure you have your api oauth code set. https://phantombot.github.io/PhantomBot/oauth/');
             $.log.error(http.getString('_exception') + ' ' + http.getString('_exceptionMessage'));
         }
     }
@@ -479,30 +480,7 @@
                 $.log.error(http.getString('message'));
             }
         } else {
-            $.log.error('Failed to change the status. Make sure you have your api oauth code set. https://phantombot.tv/oauth');
-            $.log.error(http.getString('_exception') + ' ' + http.getString('_exceptionMessage'));
-        }
-    }
-
-    /**
-     * @function updateStatus
-     * @export $
-     * @param {string} channelName
-     * @param {string} communities
-     * @param {string} sender
-     * @param {boolean} silent
-     */
-    function updateCommunity(channelName, communities, sender, silent) {
-        var http = $.twitch.UpdateCommunities(channelName, communities);
-
-        if (http.getBoolean('_success') && http.getInt('_http') == 204) {
-            if (!silent) {
-                $.say($.lang.get('common.communities.change'));
-            }
-            $.twitchcache.setCommunities(communities);
-            $.inidb.set('streamInfo', 'communities', communities.join(', '));
-        } else {
-            $.log.error('Failed to change the status. Make sure you have your api oauth code set. https://phantombot.tv/oauth');
+            $.log.error('Failed to change the status. Make sure you have your api oauth code set. https://phantombot.github.io/PhantomBot/oauth/');
             $.log.error(http.getString('_exception') + ' ' + http.getString('_exceptionMessage'));
         }
     }
@@ -520,7 +498,6 @@
     $.isOnline = isOnline;
     $.updateGame = updateGame;
     $.updateStatus = updateStatus;
-    $.updateCommunity = updateCommunity;
     $.getFollowAge = getFollowAge;
     $.getFollowDate = getFollowDate;
     $.getChannelAge = getChannelAge;

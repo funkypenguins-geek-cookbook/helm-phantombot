@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2019 phantombot.tv
+ * Copyright (C) 2016-2021 phantombot.github.io/PhantomBot
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,7 +27,6 @@ import java.io.Writer;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.TimeZone;
-
 import tv.phantombot.PhantomBot;
 
 /**
@@ -48,7 +47,7 @@ public class UncaughtExceptionHandler implements Thread.UncaughtExceptionHandler
         PrintWriter ptrace = new PrintWriter(trace);
 
         e.printStackTrace(ptrace);
-        com.gmt2001.Console.err.printStackTrace(e);
+        com.gmt2001.Console.err.printStackTrace(e, true);
 
         try {
             if (!new File ("./logs/stacktraces").exists()) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2019 phantombot.tv
+ * Copyright (C) 2016-2021 phantombot.github.io/PhantomBot
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,22 +24,29 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.LinkedBlockingDeque;
-
 import org.java_websocket.WebSocket;
-
-import tv.phantombot.script.ScriptEventManager;
 import tv.phantombot.PhantomBot;
 import tv.phantombot.cache.UsernameCache;
-
 import tv.phantombot.event.EventBus;
 import tv.phantombot.event.command.CommandEvent;
-import tv.phantombot.event.irc.channel.*;
+import tv.phantombot.event.irc.channel.IrcChannelJoinEvent;
+import tv.phantombot.event.irc.channel.IrcChannelLeaveEvent;
+import tv.phantombot.event.irc.channel.IrcChannelUserModeEvent;
 import tv.phantombot.event.irc.clearchat.IrcClearchatEvent;
 import tv.phantombot.event.irc.complete.IrcJoinCompleteEvent;
-import tv.phantombot.event.irc.message.*;
+import tv.phantombot.event.irc.message.IrcChannelMessageEvent;
+import tv.phantombot.event.irc.message.IrcModerationEvent;
+import tv.phantombot.event.irc.message.IrcPrivateMessageEvent;
 import tv.phantombot.event.twitch.bits.TwitchBitsEvent;
 import tv.phantombot.event.twitch.raid.TwitchRaidEvent;
-import tv.phantombot.event.twitch.subscriber.*;
+import tv.phantombot.event.twitch.subscriber.TwitchAnonymousSubscriptionGiftEvent;
+import tv.phantombot.event.twitch.subscriber.TwitchMassAnonymousSubscriptionGiftedEvent;
+import tv.phantombot.event.twitch.subscriber.TwitchMassSubscriptionGiftedEvent;
+import tv.phantombot.event.twitch.subscriber.TwitchPrimeSubscriberEvent;
+import tv.phantombot.event.twitch.subscriber.TwitchReSubscriberEvent;
+import tv.phantombot.event.twitch.subscriber.TwitchSubscriberEvent;
+import tv.phantombot.event.twitch.subscriber.TwitchSubscriptionGiftEvent;
+import tv.phantombot.script.ScriptEventManager;
 import tv.phantombot.twitch.irc.chat.utils.SubscriberBulkGifter;
 
 // Create an interface that is used to create event handling methods.
@@ -157,19 +164,20 @@ public class TwitchWSIRCParser implements Runnable {
      *
      * @param {String} rawMessage
      */
-    public void parseData(String rawMessage) {
+    public void parseData(String rawMessage, TwitchWSIRC client) {
         try {
             if (rawMessage.contains("\n")) {
                 String[] messageList = rawMessage.split("\n");
 
                 for (String message : messageList) {
-                    parseLine(message);
+                    parseLine(message, client);
                 }
             } else {
-                parseLine(rawMessage);
+                parseLine(rawMessage, client);
             }
         } catch (Exception ex) {
             com.gmt2001.Console.err.println("Failed to parse Twitch message: [" + ex.getMessage() + "] \n\n {" + rawMessage + "}");
+            com.gmt2001.Console.err.printStackTrace(ex);
         }
     }
 
@@ -231,12 +239,25 @@ public class TwitchWSIRCParser implements Runnable {
      *
      * @param {String} rawMessage
      */
-    private void parseLine(String rawMessage) {
+    private void parseLine(String rawMessage, TwitchWSIRC client) {
         Map<String, String> tags = new HashMap<>();
         String messageParts[] = rawMessage.split(" :", 3);
         String username = "";
         String message = "";
         String event;
+
+        if (rawMessage.startsWith("PONG")) {
+            client.gotPong();
+            return;
+        }
+
+        if (rawMessage.startsWith("PING")) {
+            return;
+        }
+
+        if (PhantomBot.instance().getProperties().getPropertyAsBoolean("ircdebug", false)) {
+            com.gmt2001.Console.debug.println(rawMessage);
+        }
 
         // Get tags from the messages.
         if (messageParts[0].startsWith("@")) {
@@ -484,7 +505,6 @@ public class TwitchWSIRCParser implements Runnable {
             case "Login authentication failed":
                 com.gmt2001.Console.out.println();
                 com.gmt2001.Console.out.println("Twitch Inidicated Login Failed. Check OAUTH password.");
-                com.gmt2001.Console.out.println("Please see: https://community.phantombot.tv/t/twitch-indicates-the-oauth-password-is-incorrect");
                 com.gmt2001.Console.out.println("Exiting PhantomBot.");
                 com.gmt2001.Console.out.println();
                 PhantomBot.exitError();
@@ -513,12 +533,12 @@ public class TwitchWSIRCParser implements Runnable {
     private void onUserNotice(String message, String username, Map<String, String> tags) {
         if (tags.containsKey("msg-id")) {
             if (tags.get("msg-id").equalsIgnoreCase("resub")) {
-                scriptEventManager.onEvent(new TwitchReSubscriberEvent(tags.get("login"), tags.get("msg-param-cumulative-months"), tags.get("msg-param-sub-plan")));
+                scriptEventManager.onEvent(new TwitchReSubscriberEvent(tags.get("login"), tags.get("msg-param-cumulative-months"), tags.get("msg-param-sub-plan"), message));
             } else if (tags.get("msg-id").equalsIgnoreCase("sub")) {
                 if (tags.get("msg-param-sub-plan").equalsIgnoreCase("Prime")) {
                     scriptEventManager.onEvent(new TwitchPrimeSubscriberEvent(tags.get("login"), tags.get("msg-param-cumulative-months")));
                 } else {
-                    scriptEventManager.onEvent(new TwitchSubscriberEvent(tags.get("login"), tags.get("msg-param-sub-plan"), tags.get("msg-param-cumulative-months")));
+                    scriptEventManager.onEvent(new TwitchSubscriberEvent(tags.get("login"), tags.get("msg-param-sub-plan"), tags.get("msg-param-cumulative-months"), message));
                 }
             } else if (tags.get("msg-id").equalsIgnoreCase("subgift")) {
                 giftedSubscriptionEvents.add(tags);
@@ -577,23 +597,32 @@ public class TwitchWSIRCParser implements Runnable {
                 } else if (tags.containsKey("display-name") && !tags.get("display-name").equalsIgnoreCase(username)) {
                     com.gmt2001.Console.out.println();
                     com.gmt2001.Console.out.println("[ERROR] oAuth token doesn't match the bot's Twitch account name.");
-                    com.gmt2001.Console.out.println("[ERROR] Please go to http://twitchapps.com/tmi and generate a new token.");
+                    com.gmt2001.Console.out.println("[ERROR] Please go to https://phantombot.github.io/PhantomBot/oauth/ and generate a new token.");
                     com.gmt2001.Console.out.println("[ERROR] Be sure to go to twitch.tv and login as the bot before getting the token.");
                     com.gmt2001.Console.out.println("[ERROR] After, open the botlogin.txt file and replace the oauth= value with the token.");
                     com.gmt2001.Console.out.println();
                 } else {
-                    com.gmt2001.Console.out.println();
-                    com.gmt2001.Console.out.println("[ERROR] " + username + " is not detected as a moderator!");
-                    com.gmt2001.Console.out.println("[ERROR] You must add " + username + " as a channel moderator for it to chat.");
-                    com.gmt2001.Console.out.println("[ERROR] Type /mod " + username + " to add " + username + " as a channel moderator.");
-                    com.gmt2001.Console.out.println();
+                    // Since the "user-type" tag in deprecated and Twitch wants us to reply on badges
+                    // A user can sometimes lose its badge for no reason from one message to another
+                    // So, this could possibly make the bot lose its moderator powers, even though the bot
+                    // is still a mod, so checking the "mod" tag before removing a user's moderator permissions
+                    // is the only way to fix this, an admin or staff member could lose moderation powers from the bot
+                    // for a second if they are not a channel moderator, so the bot would try and time them out if a moderation
+                    // filter is triggered. This fix is only to prevent the bot from losing moderator powers.
+                    if (!tags.containsKey("mod") || !tags.get("mod").equals("1")) {
+                        com.gmt2001.Console.out.println();
+                        com.gmt2001.Console.out.println("[ERROR] " + username + " is not detected as a moderator!");
+                        com.gmt2001.Console.out.println("[ERROR] You must add " + username + " as a channel moderator for it to chat.");
+                        com.gmt2001.Console.out.println("[ERROR] Type /mod " + username + " to add " + username + " as a channel moderator.");
+                        com.gmt2001.Console.out.println();
 
-                    // We're not a mod thus we cannot send messages.
-                    session.setAllowSendMessages(false);
-                    // Remove the bot from the moderators list.
-                    if (moderators.contains(username)) {
-                        moderators.remove(username);
-                        eventBus.postAsync(new IrcChannelUserModeEvent(session, username, "O", false));
+                        // We're not a mod thus we cannot send messages.
+                        session.setAllowSendMessages(false);
+                        // Remove the bot from the moderators list.
+                        if (moderators.contains(username)) {
+                            moderators.remove(username);
+                            eventBus.postAsync(new IrcChannelUserModeEvent(session, username, "O", false));
+                        }
                     }
                 }
             }

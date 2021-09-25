@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2019 phantombot.tv
+ * Copyright (C) 2016-2021 phantombot.github.io/PhantomBot
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,21 +16,18 @@
  */
 package tv.phantombot.cache;
 
-import com.gmt2001.datastore.DataStore;
 import com.gmt2001.TwitchAPIv5;
-
+import com.gmt2001.datastore.DataStore;
 import java.util.Calendar;
-import java.util.HashMap;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Map;
-
-import tv.phantombot.event.twitch.follower.TwitchFollowsInitializedEvent;
-import tv.phantombot.event.twitch.follower.TwitchFollowEvent;
-import tv.phantombot.event.EventBus;
-import tv.phantombot.PhantomBot;
-
-import org.json.JSONObject;
 import org.json.JSONArray;
+import org.json.JSONObject;
+import tv.phantombot.PhantomBot;
+import tv.phantombot.event.EventBus;
+import tv.phantombot.event.twitch.follower.TwitchFollowEvent;
+import tv.phantombot.event.twitch.follower.TwitchFollowsInitializedEvent;
 
 public class FollowersCache implements Runnable {
 
@@ -93,6 +90,7 @@ public class FollowersCache implements Runnable {
                 } catch (Exception ex) {
                     checkLastFail();
                     com.gmt2001.Console.debug.println("FollowersCache.run: Failed to update followers: " + ex.getMessage());
+                    com.gmt2001.Console.debug.printStackTrace(ex);
                 }
             } catch (Exception ex) {
                 com.gmt2001.Console.err.println("FollowersCache.run: Failed to update followers [" + ex.getClass().getSimpleName() + "]: " + ex.getMessage());
@@ -122,10 +120,15 @@ public class FollowersCache implements Runnable {
 
                 for (int i = 0; i < jsonArray.length(); i++) {
                     String follower = jsonArray.getJSONObject(i).getJSONObject("user").getString("name").toLowerCase();
+                    String followDate = jsonArray.getJSONObject(i).getString("created_at");
 
                     if (!datastore.exists("followed", follower)) {
-                        EventBus.instance().post(new TwitchFollowEvent(follower));
+                        EventBus.instance().post(new TwitchFollowEvent(follower, followDate));
                         datastore.set("followed", follower, "true");
+                    }
+
+                    if (!datastore.exists("followed_date", follower)) {
+                        datastore.set("followedDate", follower, followDate);
                     }
                 }
             } else {
@@ -133,7 +136,7 @@ public class FollowersCache implements Runnable {
                                     + jsonObject.getString("_type") + " " + jsonObject.getString("_url") + " " + jsonObject.getString("_post") + "  "
                                     + (jsonObject.has("message") && !jsonObject.isNull("message") ? "message=" + jsonObject.getString("message") : "content=" + jsonObject.getString("_content")));
             }
-        } else {
+        } else if (!jsonObject.getString("_exception").isBlank()) {
             throw new Exception("[" + jsonObject.getString("_exception") + "] " + jsonObject.getString("_exceptionMessage"));
         }
 

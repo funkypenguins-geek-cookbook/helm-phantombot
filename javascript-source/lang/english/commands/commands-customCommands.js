@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2019 phantombot.tv
+ * Copyright (C) 2016-2021 phantombot.github.io/PhantomBot
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,6 +32,7 @@ $.lang.register('customcommands.alias.usage', 'Usage: !aliascom (alias name) (ex
 $.lang.register('customcommands.delete.success', 'Command !$1 has been removed!');
 $.lang.register('customcommands.delete.usage', 'Usage: !delcom (command)');
 $.lang.register('customcommands.edit.404', 'You cannot overwrite a default command.');
+$.lang.register('customcommands.edit.editcom.alias', 'You cannot edit an alias, please use the following: !editcom !$1 $2');
 $.lang.register('customcommands.set.perm.error.target404', 'The command !$1 does not exist!');
 $.lang.register('customcommands.set.perm.success', 'Permissions for command: $1 set for group: $2 and higher.');
 $.lang.register('customcommands.set.perm.unset.success', 'All recursive permissions for the command: $1 and any of its aliases have been removed.');
@@ -54,6 +55,7 @@ $.lang.register('customcommands.token.success', 'Token set for command !$1! Make
 $.lang.register('customcommands.touser.offline', 'Sorry, but $1 appears to be offline!');
 $.lang.register('customcommands.customapi.404', 'The !$1 command requires parameters.');
 $.lang.register('customcommands.customapijson.err', '!$1: An error occurred processing the API.');
+$.lang.register('customcommands.datetime.format.invalid', 'unrecognized date format "$1"');
 $.lang.register('customcommands.disable.usage', 'Usage: !disablecom (command)');
 $.lang.register('customcommands.disable.404', 'That command does not exist.');
 $.lang.register('customcommands.disable.err', 'That command is already disabled.');
@@ -62,10 +64,30 @@ $.lang.register('customcommands.enable.usage', 'Usage: !enablecom (command)');
 $.lang.register('customcommands.enable.404', 'That command does not exist.');
 $.lang.register('customcommands.enable.err', 'That command is not disabled.');
 $.lang.register('customcommands.enable.success', 'Command !$1 has been re-enabled.');
+$.lang.register('customcommands.hide.usage', 'Usage: !hidecom (command)');
+$.lang.register('customcommands.hide.404', 'That command does not exist.');
+$.lang.register('customcommands.hide.err', 'That command is already hidden.');
+$.lang.register('customcommands.hide.success', 'Command !$1 has is now hidden.');
+$.lang.register('customcommands.show.usage', 'Usage: !showcom (command)');
+$.lang.register('customcommands.show.404', 'That command does not exist.');
+$.lang.register('customcommands.show.err', 'That command is not hidden.');
+$.lang.register('customcommands.show.success', 'Command !$1 is not hidden anymore.');
+$.lang.register('customcommands.keyword.404', 'unknown keyword "$1"');
+$.lang.register('customcommands.lasttip.404', 'No donations found.');
+$.lang.register('customcommands.playsound.404', 'unknown audio hook "$1"');
+$.lang.register('customcommands.file.404', 'file not found: $1');
 $.lang.register('customcommands.reset.usage', 'Usage: !resetcom (command) (count). If no (count) then reset to 0.');
 $.lang.register('customcommands.reset.success', 'The counter for !$1 has been reset.');
 $.lang.register('customcommands.reset.change.fail', 'Invalid counter value: $1');
 $.lang.register('customcommands.reset.change.success', 'The counter for !$1 has been set to $2.');
+$.lang.register('customcommands.external.add.usage', 'Usage: !addextcom (command)');
+$.lang.register('customcommands.external.add.success', 'External command !$1 has been created!');
+$.lang.register('customcommands.external.add.error', 'That command already exists');
+$.lang.register('customcommands.external.delete.usage', 'Usage: !delextcom (command)');
+$.lang.register('customcommands.external.delete.success', 'External command !$1 has been removed!');
+$.lang.register('customcommands.external.delete.error', 'That external command already exists');
+$.lang.register('customcommands.teamapi.team.404', 'you\'re not part of team "$1"');
+$.lang.register('customcommands.teamapi.member.404', 'member "$1" is not in team "$2"');
 $.lang.register('customcommands.botcommands', 'Commands: $1');
 $.lang.register('customcommands.botcommands.error', 'Provide a number to find a page.');
-$.lang.register('customcommands.botcommands.total', 'Total Pages: $1 [See also: https://phantombot.tv/commands]');
+$.lang.register('customcommands.botcommands.total', 'Total Pages: $1 [See also: https://phantombot.github.io/PhantomBot/guides/#guide=content/commands/commands]');
